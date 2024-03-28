@@ -1,40 +1,67 @@
 import gpiod
 import time
 
-MOSI_PIN = 17
-SCK_PIN = 11
-SS_PIN = 22
+class RPi5SPI:
 
-CHIP_NAME = "gpiochip4"
+    __MOSI_PIN = 10
+    __MISO_PIN = 9
+    __SCK_PIN = 11
+    __SS_PIN = 22
+    __CHIP_NAME = "gpiochip4"
 
-chip = gpiod.Chip(CHIP_NAME)
+    __SCK_PERIOD = 1
 
-line_mosi = chip.get_line(MOSI_PIN)
-line_sck = chip.get_line(SCK_PIN)
-line_ss = chip.get_line(SS_PIN)
+    def __init__(self) -> None:
+        self.chip = gpiod.Chip(self.__CHIP_NAME)
 
-line_mosi.request(consumer="spi_mosi", type=gpiod.LINE_REQ_DIR_OUT)
-line_sck.request(consumer="spi_sck", type=gpiod.LINE_REQ_DIR_OUT)
-line_ss.request(consumer="spi_ss", type=gpiod.LINE_REQ_DIR_OUT)
+        self.__line_mosi = self.chip.get_line(self.__MOSI_PIN)
+        self.__line_miso = self.chip.get_line(self.__MISO_PIN)
+        self.__line_sck = self.chip.get_line(self.__SCK_PIN)
+        self.__line_ss = self.chip.get_line(self.__SS_PIN)
 
-byte_to_send = 0xFF
+        self.__line_mosi.request(consumer="spi_mosi", type=gpiod.LINE_REQ_DIR_OUT)
+        self.__line_miso.request(consumer="spi_miso", type=gpiod.LINE_REQ_DIR_IN)
+        self.__line_sck.request(consumer="spi_sck", type=gpiod.LINE_REQ_DIR_OUT)
+        self.__line_ss.request(consumer="spi_ss", type=gpiod.LINE_REQ_DIR_OUT)
 
-def send_byte_spi(byte):
-    
-    line_ss.set_value(0)
-    
-    for i in range(8):
-        line_mosi.set_value((byte >> (7 - i)) & 0x01)
-        time.sleep(0.0025)
-        line_sck.set_value(1)
-        time.sleep(0.0025)
-        line_sck.set_value(0)
-        time.sleep(0.005)
+    def close_connection(self):
+        self.__line_mosi.release()
+        self.__line_miso.release()
+        self.__line_sck.release()
+        self.__line_ss.release()
+
+    def exange_data(self, byte_out):
+        byte_in = 0
         
-    line_ss.set_value(1)
-    
-    line_mosi.release()
-    line_sck.release()
-    line_ss.release()
-    
-send_byte_spi(byte_to_send)
+        self.__line_ss.set_value(0)
+        
+        for i in range(8):
+            self.__line_mosi.set_value((byte_out >> (7 - i)) & 0x01)
+            time.sleep(self.__SCK_PERIOD/4)
+            self.__line_sck.set_value(1)
+            time.sleep(self.__SCK_PERIOD/4)
+            bit = self.__line_miso.get_value()
+            # print(bit)
+            byte_in = (byte_in << 1) | bit
+            self.__line_sck.set_value(0)
+            time.sleep(self.__SCK_PERIOD/2)
+            
+        self.__line_ss.set_value(1)
+
+        return byte_in
+
+    def set_period(self, time):
+        self.__SCK_PERIOD = time
+
+def main():
+    spi = RPi5SPI()
+    spi.set_period(0.005)
+    byte_to_send = 0xAA
+    spi.exange_data(byte_to_send)
+    received = spi.exange_data(0x00)
+    print("Byte enviado:  {:08b}".format(byte_to_send))
+    print("Byte recebido: {:08b}".format(received))
+    spi.close_connection()
+
+if __name__ == "__main__":
+    main()
