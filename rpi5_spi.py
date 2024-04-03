@@ -53,14 +53,26 @@ class RPi5SPI:
     def set_period(self, time):
         self.__SCK_PERIOD = time
 
+def sendbyte(spi, byte_to_send):
+    time.sleep(0.01)
+    received = spi.exange_data(byte_to_send)
+    print("Byte enviado:  {:08b}".format(byte_to_send), "Byte recebido: {:08b}".format(received))
+
 def main():
     spi = RPi5SPI()
     spi.set_period(0.005)
-    byte_to_send = 0xAA
-    spi.exange_data(byte_to_send)
-    received = spi.exange_data(0x00)
-    print("Byte enviado:  {:08b}".format(byte_to_send))
-    print("Byte recebido: {:08b}".format(received))
+    print("Sending type")
+    sendbyte(spi, 0b00000001)
+    print("Sending size")
+    sendbyte(spi, 0b00000000)
+    sendbyte(spi, 0b00000000)
+    sendbyte(spi, 0b00000100)
+    print("Sending data")
+    sendbyte(spi, 0b11111111)
+    sendbyte(spi, 0b01010101)
+    sendbyte(spi, 0b00001111)
+    sendbyte(spi, 0b10000001)
+    sendbyte(spi, 0b00000000)
     spi.close_connection()
 
 if __name__ == "__main__":
