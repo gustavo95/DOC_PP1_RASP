@@ -11,6 +11,8 @@ class RPi5SPI:
     __CHIP_NAME = "gpiochip4"
 
     __SCK_PERIOD = 1
+    __HALF_PERIOD = __SCK_PERIOD/2
+    __QUARTER_PERIOD = __SCK_PERIOD/4
 
     def __init__(self) -> None:
         self.chip = gpiod.Chip(self.__CHIP_NAME)
@@ -38,18 +40,25 @@ class RPi5SPI:
         
         for i in range(8):
             self.__line_mosi.set_value((byte_out >> (7 - i)) & 0x01)
-            time.sleep(self.__SCK_PERIOD/4)
+            # time.sleep(self.__QUARTER_PERIOD)
             self.__line_sck.set_value(1)
-            time.sleep(self.__SCK_PERIOD/4)
+            # time.sleep(self.__QUARTER_PERIOD)
             bit = self.__line_miso.get_value()
             # print(bit)
             byte_in = (byte_in << 1) | bit
             self.__line_sck.set_value(0)
-            time.sleep(self.__SCK_PERIOD/2)
-            
+            # time.sleep(self.__HALF_PERIOD)
+        
         self.__line_ss.set_value(1)
 
         return byte_in
 
     def set_period(self, time) -> None:
         self.__SCK_PERIOD = time
+        self.__HALF_PERIOD = self.__SCK_PERIOD/2
+        self.__QUARTER_PERIOD = self.__SCK_PERIOD/4
+
+    def set_frequency(self, frequency) -> None:
+        self.__SCK_PERIOD = (1/frequency)
+        self.__HALF_PERIOD = self.__SCK_PERIOD/2
+        self.__QUARTER_PERIOD = self.__SCK_PERIOD/4
