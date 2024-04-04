@@ -1,5 +1,6 @@
 import gpiod
 import time
+import numpy as np
 
 class RPi5SPI:
 
@@ -24,13 +25,13 @@ class RPi5SPI:
         self.__line_sck.request(consumer="spi_sck", type=gpiod.LINE_REQ_DIR_OUT)
         self.__line_ss.request(consumer="spi_ss", type=gpiod.LINE_REQ_DIR_OUT)
 
-    def close_connection(self):
+    def close_connection(self) -> None:
         self.__line_mosi.release()
         self.__line_miso.release()
         self.__line_sck.release()
         self.__line_ss.release()
 
-    def exange_data(self, byte_out):
+    def exange_data(self, byte_out : np.uint8) -> int:
         byte_in = 0
         
         self.__line_ss.set_value(0)
@@ -50,30 +51,5 @@ class RPi5SPI:
 
         return byte_in
 
-    def set_period(self, time):
+    def set_period(self, time) -> None:
         self.__SCK_PERIOD = time
-
-def sendbyte(spi, byte_to_send):
-    time.sleep(0.01)
-    received = spi.exange_data(byte_to_send)
-    print("Byte enviado:  {:08b}".format(byte_to_send), "Byte recebido: {:08b}".format(received))
-
-def main():
-    spi = RPi5SPI()
-    spi.set_period(0.005)
-    print("Sending type")
-    sendbyte(spi, 0b00000001)
-    print("Sending size")
-    sendbyte(spi, 0b00000000)
-    sendbyte(spi, 0b00000000)
-    sendbyte(spi, 0b00000100)
-    print("Sending data")
-    sendbyte(spi, 0b11111111)
-    sendbyte(spi, 0b01010101)
-    sendbyte(spi, 0b00001111)
-    sendbyte(spi, 0b10000001)
-    sendbyte(spi, 0b00000000)
-    spi.close_connection()
-
-if __name__ == "__main__":
-    main()
