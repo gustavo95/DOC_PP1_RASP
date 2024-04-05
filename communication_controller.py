@@ -53,20 +53,21 @@ class CommunicationController:
                 pixel = img[y, x]
                 # print(y, x, pixel)
                 self.sendbyte(pixel)
-                time.sleep(1)
+                # time.sleep(1)
         self.sendbyte(0)
 
         send_time = time.time() - initial_time
         print(f"Time to send image: {send_time}")
 
     def recive_img(self):
-        self.sendbyte(np.uint8(1))
+        self.sendbyte(np.uint8(2))
 
         new_img = np.zeros((120, 160), dtype=np.uint8)
         x = 0
         y = 0
 
-        time.sleep(1)
+        # time.sleep(1)
+        pixel = self.sendbyte(0) # discart first byte
 
         for i in range(19200):
             pixel = self.sendbyte(0)
@@ -77,7 +78,7 @@ class CommunicationController:
                 x = 0
                 if (y >= 120):
                     break
-            time.sleep(1)
+            # time.sleep(1)
         return new_img
 
 

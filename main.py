@@ -16,7 +16,7 @@ def main():
     com.send_img(img)
 
     print("Image send")
-    time.sleep(1)
+    time.sleep(2)
 
     new_img = com.recive_img()
 
