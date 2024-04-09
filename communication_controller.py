@@ -35,7 +35,7 @@ class CommunicationController:
         self.sendbyte(0b00000000)
 
     def send_img(self, img, channel = 0b10) -> None:
-
+        self.sendbyte(0)
         self.sendbyte(0b00000100 | channel)
 
         height, width = img.shape[0:2]
@@ -67,6 +67,7 @@ class CommunicationController:
         print(f"Time to send image: {send_time}")
 
     def recive_img(self, channel = 0b10):
+        self.sendbyte(0)
         self.sendbyte(0b00001000 | channel)
 
         new_img = np.zeros((self.height, self.width), dtype=np.uint8)
