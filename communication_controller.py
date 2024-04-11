@@ -16,7 +16,7 @@ class CommunicationController:
     def sendbyte(self, byte_to_send):
         # time.sleep(self.delay_time)
         received = self.spi.exange_data(byte_to_send)
-        print("Byte enviado:  {:08b}".format(byte_to_send), "Byte recebido: {:08b}".format(received))
+        # print("Byte enviado:  {:08b}".format(byte_to_send), "Byte recebido: {:08b}".format(received))
         return received
 
     def test(self):
@@ -40,7 +40,7 @@ class CommunicationController:
 
         height, width = img.shape[0:2]
 
-        print(width, height)
+        # print(width, height)
 
         # time.sleep(2)
 
@@ -95,9 +95,32 @@ class CommunicationController:
 
         channel_b, channel_g, channel_r = cv2.split(img)
 
+        print("Sending red")
         self.send_img(channel_r, 0b01)
+        print("Sending green")
         self.send_img(channel_g, 0b10)
+        print("Sending blue")
         self.send_img(channel_b, 0b11)
+
+    def run_pdi(self):
+        self.sendbyte(0)
+
+        self.sendbyte(0b00001100)
+        initial_time = time.time()
+
+        print("FPGA on PDI")
+        while(not self.sendbyte(0)):
+            print(".", end='')
+        while(self.sendbyte(0)):
+            print(".", end='')
+        print(".")
+        
+        pdi_time = time.time() - initial_time
+        print(f"PDI in FPGA finished in: {pdi_time}")
+        
+        self.sendbyte(0)
+
+            
 
     def toUnint8(self, data, num_bytes) -> np.uint8:
         data_bytes = data.to_bytes(num_bytes, "big")
