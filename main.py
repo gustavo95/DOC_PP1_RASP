@@ -20,17 +20,15 @@ def pdi(img):
     if (mean_b > max_mean):
         max_mean = mean_b
 
-    for i in range(height):
-        for j in range(width):
-            channel_r[i,j] = (channel_r[i,j]*mean_r)/max_mean
+    red_gain = mean_r/max_mean
+    green_gain = mean_g/max_mean
+    blue_gain = mean_b/max_mean
 
     for i in range(height):
         for j in range(width):
-            channel_g[i,j] = (channel_g[i,j]*mean_g)/max_mean
-
-    for i in range(height):
-        for j in range(width):
-            channel_b[i,j] = (channel_b[i,j]*mean_b)/max_mean
+            channel_r[i,j] = channel_r[i,j]*red_gain
+            channel_g[i,j] = channel_g[i,j]*green_gain
+            channel_b[i,j] = channel_b[i,j]*blue_gain
 
     mean_time = time.time() - initial_time
     print(f"PDI in rasp finished in: {mean_time}")
