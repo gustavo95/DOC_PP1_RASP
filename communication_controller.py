@@ -2,20 +2,27 @@ import cv2
 import time
 import numpy as np
 from rpi5_spi import RPi5SPI
+import spidev
 
 class CommunicationController:
 
     def __init__(self, height, width) -> None:
-        self.spi = RPi5SPI()
-        self.frequency = 12000000
-        self.delay_time = 1/self.frequency
-        self.spi.set_frequency(self.frequency)
+        # self.spi = RPi5SPI()
+        # self.frequency = 500000
+        # self.delay_time = 1/self.frequency
+        # self.spi.set_frequency(self.frequency)
+        self.spi = spidev.SpiDev()
+        self.spi.open(0, 0)
+        self.spi.max_speed_hz = 8200000
+        self.spi.mode = 0
+
         self.height = height
         self.width = width
 
     def sendbyte(self, byte_to_send):
         # time.sleep(self.delay_time)
-        received = self.spi.exange_data(byte_to_send)
+        # received = self.spi.exange_data(byte_to_send)
+        received = self.spi.xfer([int(byte_to_send)])[0]
         # print("Byte enviado:  {:08b}".format(byte_to_send), "Byte recebido: {:08b}".format(received))
         return received
 
@@ -35,6 +42,7 @@ class CommunicationController:
         self.sendbyte(0b00000000)
 
     def send_img(self, img, channel = 0b10) -> None:
+        initial_time = time.time()
         self.sendbyte(0)
         self.sendbyte(0b00000100 | channel)
 
@@ -54,13 +62,22 @@ class CommunicationController:
 
         # time.sleep(2)
 
-        initial_time = time.time()
-        for y in range(height):
-            for x in range(width):
-                pixel = img[y, x]
-                # print(y, x, pixel)
-                self.sendbyte(pixel)
-                # time.sleep(1)
+        # for y in range(height):
+        #     for x in range(width):
+        #         pixel = img[y, x]
+        #         # print(y, x, pixel)
+        #         self.sendbyte(pixel)
+        #         # time.sleep(1)
+        # self.sendbyte(0)
+
+        array_pixels = img.flatten()
+        array_pixels = [int(pixel) for pixel in array_pixels]
+        print(array_pixels[:10])
+        block_size = 4096
+        for i in range(0, len(array_pixels), block_size):
+            pixels_to_send = array_pixels[i:i+block_size]
+            self.spi.xfer(pixels_to_send)
+
         self.sendbyte(0)
 
         send_time = time.time() - initial_time
@@ -120,8 +137,6 @@ class CommunicationController:
         
         self.sendbyte(0)
 
-            
-
     def toUnint8(self, data, num_bytes) -> np.uint8:
         data_bytes = data.to_bytes(num_bytes, "big")
         return np.frombuffer(data_bytes, dtype=np.uint8)
@@ -129,7 +144,8 @@ class CommunicationController:
 
     def close_communication(self) -> None:
         print("Closing connection")
-        self.spi.close_connection()
+        # self.spi.close_connection()
+        self.spi.close()
 
         
 
