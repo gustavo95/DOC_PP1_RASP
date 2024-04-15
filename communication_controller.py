@@ -43,42 +43,19 @@ class CommunicationController:
 
     def send_img(self, img, channel = 0b10) -> None:
         initial_time = time.time()
-        self.sendbyte(0)
-        self.sendbyte(0b00000100 | channel)
 
         height, width = img.shape[0:2]
-
-        # print(width, height)
-
-        # time.sleep(2)
-
         height_bytes = self.toUnint8(height, 2)
         width_bytes = self.toUnint8(width, 2)
 
-        self.sendbyte(height_bytes[0])
-        self.sendbyte(height_bytes[1])
-        self.sendbyte(width_bytes[0])
-        self.sendbyte(width_bytes[1])
+        self.spi.xfer([0, int(0b00000100 | channel),
+                        int(height_bytes[0]), int(height_bytes[1]),
+                        int(width_bytes[0]), int(width_bytes[1])])
 
-        # time.sleep(2)
+        array_pixels = img.flatten().astype(np.int32).tolist()
+        self.spi.xfer3(array_pixels)
 
-        # for y in range(height):
-        #     for x in range(width):
-        #         pixel = img[y, x]
-        #         # print(y, x, pixel)
-        #         self.sendbyte(pixel)
-        #         # time.sleep(1)
-        # self.sendbyte(0)
-
-        array_pixels = img.flatten()
-        array_pixels = [int(pixel) for pixel in array_pixels]
-        print(array_pixels[:10])
-        block_size = 4096
-        for i in range(0, len(array_pixels), block_size):
-            pixels_to_send = array_pixels[i:i+block_size]
-            self.spi.xfer(pixels_to_send)
-
-        self.sendbyte(0)
+        self.spi.xfer([0])
 
         send_time = time.time() - initial_time
         print(f"Time to send image: {send_time}")
@@ -109,6 +86,7 @@ class CommunicationController:
         return new_img
     
     def send_rgb_img(self, img):
+        initial_time = time.time()
 
         channel_b, channel_g, channel_r = cv2.split(img)
 
@@ -118,6 +96,9 @@ class CommunicationController:
         self.send_img(channel_g, 0b10)
         print("Sending blue")
         self.send_img(channel_b, 0b11)
+
+        send_time = time.time() - initial_time
+        print(f"All channels sended in: {send_time}")
 
     def run_pdi(self):
         self.sendbyte(0)
