@@ -7,10 +7,6 @@ import spidev
 class CommunicationController:
 
     def __init__(self, height, width) -> None:
-        # self.spi = RPi5SPI()
-        # self.frequency = 500000
-        # self.delay_time = 1/self.frequency
-        # self.spi.set_frequency(self.frequency)
         self.spi = spidev.SpiDev()
         self.spi.open(0, 0)
         self.spi.max_speed_hz = 8200000
@@ -25,21 +21,6 @@ class CommunicationController:
         received = self.spi.xfer([int(byte_to_send)])[0]
         # print("Byte enviado:  {:08b}".format(byte_to_send), "Byte recebido: {:08b}".format(received))
         return received
-
-    def test(self):
-        print("Sending type")
-        self.sendbyte(1)
-        print("Sending size")
-        self.sendbyte(0b00000000)
-        self.sendbyte(0b00000010)
-        self.sendbyte(0b00000000)
-        self.sendbyte(0b00000010)
-        print("Sending data")
-        self.sendbyte(0b11111111)
-        self.sendbyte(0b01010101)
-        self.sendbyte(0b00001111)
-        self.sendbyte(0b10000001)
-        self.sendbyte(0b00000000)
 
     def send_img(self, img, channel = 0b10) -> None:
         initial_time = time.time()
@@ -60,32 +41,17 @@ class CommunicationController:
         send_time = time.time() - initial_time
         print(f"Time to send image: {send_time}")
 
-    def recive_img(self, channel = 0b10):
-        self.sendbyte(0)
-        self.sendbyte(0b00001000 | channel)
+    def recive_img(self, channel = 0b10) -> np.array:
+        self.spi.xfer([0, int(0b00001000 | channel), 0, 0])
 
-        new_img = np.zeros((self.height, self.width), dtype=np.uint8)
-        x = 0
-        y = 0
+        result = self.spi.xfer3([0]*76800)
+        pixels_array = np.array(result, dtype=np.uint8)
+        new_img = pixels_array.reshape(240, 320)
 
-        # time.sleep(1)
-        pixel = self.sendbyte(0) # discart first byte
-
-        for i in range(76800):
-            pixel = self.sendbyte(0)
-            new_img[y, x] = pixel
-            x += 1
-            if(x >= self.width):
-                y += 1
-                x = 0
-                if (y >= self.height):
-                    break
-            # time.sleep(1)
-
-        self.sendbyte(0)
+        self.spi.xfer([0])
         return new_img
     
-    def send_rgb_img(self, img):
+    def send_rgb_img(self, img) -> None:
         initial_time = time.time()
 
         channel_b, channel_g, channel_r = cv2.split(img)
@@ -100,32 +66,33 @@ class CommunicationController:
         send_time = time.time() - initial_time
         print(f"All channels sended in: {send_time}")
 
-    def run_pdi(self):
-        self.sendbyte(0)
+    def run_pdi(self) -> None:
 
-        self.sendbyte(0b00001100)
         initial_time = time.time()
 
+        self.spi.xfer([0, int(0b00001100), 0, 0])
+
         print("FPGA on PDI")
-        while(not self.sendbyte(0)):
+        pdi_running = False
+        while(not pdi_running):
             print(".", end='')
-        while(self.sendbyte(0)):
+            pdi_running = self.spi.xfer([0])[0]
+        while(pdi_running):
             print(".", end='')
+            pdi_running = self.spi.xfer([0])[0]
         print(".")
         
+        self.spi.xfer([0])
+
         pdi_time = time.time() - initial_time
         print(f"PDI in FPGA finished in: {pdi_time}")
-        
-        self.sendbyte(0)
 
     def toUnint8(self, data, num_bytes) -> np.uint8:
         data_bytes = data.to_bytes(num_bytes, "big")
         return np.frombuffer(data_bytes, dtype=np.uint8)
 
-
     def close_communication(self) -> None:
         print("Closing connection")
-        # self.spi.close_connection()
         self.spi.close()
 
         
