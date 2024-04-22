@@ -1,28 +1,27 @@
 import cv2
 import time
 import numpy as np
-from rpi5_spi import RPi5SPI
 import spidev
 
 class CommunicationController:
 
-    def __init__(self, height, width) -> None:
+    def __init__(self, height: int, width: int) -> None:
         self.spi = spidev.SpiDev()
         self.spi.open(0, 0)
-        self.spi.max_speed_hz = 8200000
+        self.spi.max_speed_hz = 37000000
         self.spi.mode = 0
 
         self.height = height
         self.width = width
 
-    def sendbyte(self, byte_to_send):
+    def sendbyte(self, byte_to_send: list[int]) -> list[int]:
         # time.sleep(self.delay_time)
         # received = self.spi.exange_data(byte_to_send)
-        received = self.spi.xfer([int(byte_to_send)])[0]
+        received = self.spi.xfer3(byte_to_send)
         # print("Byte enviado:  {:08b}".format(byte_to_send), "Byte recebido: {:08b}".format(received))
         return received
 
-    def send_img(self, img, channel = 0b10) -> None:
+    def send_img(self, img: np.ndarray, channel: int = 0b10) -> np.ndarray:
         initial_time = time.time()
 
         height, width = img.shape[0:2]
@@ -41,17 +40,22 @@ class CommunicationController:
         send_time = time.time() - initial_time
         print(f"Time to send image: {send_time}")
 
-    def recive_img(self, channel = 0b10) -> np.array:
+    def recive_img(self, channel: int = 0b10) -> np.array:
         self.spi.xfer([0, int(0b00001000 | channel), 0, 0])
 
-        result = self.spi.xfer3([0]*76800)
-        pixels_array = np.array(result, dtype=np.uint8)
+        pixels_array = []
+
+        for i in range(76800):
+            result = self.spi.xfer([0])
+            pixels_array.append(result)
+        
+        pixels_array = np.array(pixels_array, dtype=np.uint8)
         new_img = pixels_array.reshape(240, 320)
 
         self.spi.xfer([0])
         return new_img
     
-    def send_rgb_img(self, img) -> None:
+    def send_rgb_img(self, img: np.ndarray) -> None:
         initial_time = time.time()
 
         channel_b, channel_g, channel_r = cv2.split(img)
@@ -87,7 +91,7 @@ class CommunicationController:
         pdi_time = time.time() - initial_time
         print(f"PDI in FPGA finished in: {pdi_time}")
 
-    def toUnint8(self, data, num_bytes) -> np.uint8:
+    def toUnint8(self, data: int, num_bytes: int) -> np.array:
         data_bytes = data.to_bytes(num_bytes, "big")
         return np.frombuffer(data_bytes, dtype=np.uint8)
 
