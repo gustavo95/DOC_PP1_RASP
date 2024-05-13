@@ -11,6 +11,7 @@ def rasp_pdi(img):
     cv2.imshow("rpi_img", img)
 
 def fpga_pdi(img, height, width):
+    initial_time = time.time()
     com = CommunicationController(height, width)
 
     com.send_rgb_img(img)
@@ -28,6 +29,8 @@ def fpga_pdi(img, height, width):
 
     com.close_communication()
 
+    fpga_time = time.time() - initial_time
+    print(f"FPGA finished in: {fpga_time}")
     cv2.imshow("fpga_img", new_img)
 
 def main():

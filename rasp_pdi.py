@@ -34,8 +34,14 @@ class RaspPDI:
                 channel_g[i,j] = channel_g[i,j]*green_gain
                 channel_b[i,j] = channel_b[i,j]*blue_gain
 
+        pdi_img = cv2.merge([channel_b, channel_g, channel_r])
+
+        pdi_img = cv2.cvtColor(pdi_img, cv2.COLOR_BGR2YCrCb)
+
+        Y, Cr, Cb = cv2.split(pdi_img)
+        pdi_img = cv2.merge([Cr, Cb, Y])
+
         mean_time = time.time() - initial_time
         print(f"PDI in rasp finished in: {mean_time}")
 
-        pdi_img = cv2.merge([channel_b, channel_g, channel_r])
         return pdi_img

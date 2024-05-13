@@ -76,7 +76,7 @@ class CommunicationController:
 
         self.spi.xfer([0, int(0b00001100), 0, 0])
 
-        print("FPGA on PDI")
+        print("PDI on FPGA")
         pdi_running = False
         while(not pdi_running):
             print(".", end='')
