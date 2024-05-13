@@ -1,5 +1,6 @@
 import cv2
 import time
+import numpy as np
 
 class RaspPDI:
 
@@ -47,5 +48,17 @@ class RaspPDI:
         mask = cv2.bitwise_and(mask_cb, mask_cr)
 
         return mask
+    
+    def filtering(self, img):
+        kernel = np.array([
+            [0, 1, 0],
+            [1, 1, 1],
+            [0, 1, 0]
+        ], dtype=np.uint8)
+
+        eroded_img = cv2.erode(img, kernel, iterations=1)
+        dilated_img = cv2.dilate(eroded_img, kernel, iterations=1)
+
+        return dilated_img
     
     

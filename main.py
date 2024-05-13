@@ -11,8 +11,10 @@ def rasp_pdi(img):
     
     img_YCrCb = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
     Y, Cr, Cb = cv2.split(img_YCrCb)
+    # img = cv2.merge([Cr, Cb, Y])
     
     img = pdi.skin_color_segmentation(Y, Cr, Cb)
+    img = pdi.filtering(img)
 
     mean_time = time.time() - initial_time
     print(f"PDI in rasp finished in: {mean_time}")
@@ -45,13 +47,13 @@ def main():
     height = 240
     width = 320
     
-    img = cv2.imread('hand.jpg')
-    # img = cv2.imread('one_finger_up.jpeg')
-    # img = cv2.imread('victory.jpeg')
-    # img = cv2.imread('three_fingers_up.jpeg')
-    # img = cv2.imread('four_fingers_up.jpeg')
-    # img = cv2.imread('open_palm.jpeg')
-    # img = cv2.imread('closed_fist.jpeg')
+    # img = cv2.imread('hand.jpg')
+    # img = cv2.imread('one_finger_up.JPEG')
+    # img = cv2.imread('victory.JPEG')
+    # img = cv2.imread('three_fingers_up.JPEG')
+    # img = cv2.imread('four_fingers_up.JPEG')
+    img = cv2.imread('open_palm.JPEG')
+    # img = cv2.imread('closed_fist.JPEG')
     
     img = cv2.resize(img, (width, height))
 
