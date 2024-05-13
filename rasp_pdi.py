@@ -7,7 +7,6 @@ class RaspPDI:
         pass
 
     def illumination_compesation (self, img):
-        initial_time = time.time()
         height, width = img.shape[0:2]
         channel_b, channel_g, channel_r = cv2.split(img)
 
@@ -36,12 +35,17 @@ class RaspPDI:
 
         pdi_img = cv2.merge([channel_b, channel_g, channel_r])
 
-        pdi_img = cv2.cvtColor(pdi_img, cv2.COLOR_BGR2YCrCb)
-
-        Y, Cr, Cb = cv2.split(pdi_img)
-        pdi_img = cv2.merge([Cr, Cb, Y])
-
-        mean_time = time.time() - initial_time
-        print(f"PDI in rasp finished in: {mean_time}")
-
         return pdi_img
+    
+    def skin_color_segmentation(self, Y, Cr, Cb):
+        cb_min, cb_max = 95, 120
+        cr_min, cr_max = 140, 170
+
+        mask_cb = cv2.inRange(Cb, cb_min, cb_max)
+        mask_cr = cv2.inRange(Cr, cr_min, cr_max)
+
+        mask = cv2.bitwise_and(mask_cb, mask_cr)
+
+        return mask
+    
+    

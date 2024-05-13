@@ -4,10 +4,18 @@ from rasp_pdi import RaspPDI
 from communication_controller import CommunicationController
 
 def rasp_pdi(img):
+    initial_time = time.time()
     pdi = RaspPDI()
 
     img = pdi.illumination_compesation(img)
+    
+    img_YCrCb = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
+    Y, Cr, Cb = cv2.split(img_YCrCb)
+    
+    img = pdi.skin_color_segmentation(Y, Cr, Cb)
 
+    mean_time = time.time() - initial_time
+    print(f"PDI in rasp finished in: {mean_time}")
     cv2.imshow("rpi_img", img)
 
 def fpga_pdi(img, height, width):
@@ -36,7 +44,15 @@ def fpga_pdi(img, height, width):
 def main():
     height = 240
     width = 320
+    
     img = cv2.imread('hand.jpg')
+    # img = cv2.imread('one_finger_up.jpeg')
+    # img = cv2.imread('victory.jpeg')
+    # img = cv2.imread('three_fingers_up.jpeg')
+    # img = cv2.imread('four_fingers_up.jpeg')
+    # img = cv2.imread('open_palm.jpeg')
+    # img = cv2.imread('closed_fist.jpeg')
+    
     img = cv2.resize(img, (width, height))
 
     cv2.imshow("img", img)
