@@ -61,4 +61,106 @@ class RaspPDI:
 
         return dilated_img
     
+    def hand_area_perimeter(self, img):
+        area = 0
+        perimeter = 0
+        prev_pixel = 0
+        
+        height, width = img.shape[0:2]
+        
+        for i in range(height):
+            for j in range(width):
+                if img[i, j] == 255:
+                    area += 1
+                    if j < min_width:
+                        min_width = j
+                    if j > max_width:
+                        max_width = j
+                if img[i, j] != prev_pixel:
+                    perimeter += 1
+                prev_pixel = img[i, j]
+                
+        return area, perimeter
     
+    def calculate_base_reference(self, image: np.ndarray) -> tuple:
+        rows, cols = np.where(image > 0)
+        bottom_row = np.max(rows)
+        base_pixels = cols[rows == bottom_row]
+        base_reference = (bottom_row, int(np.mean(base_pixels)))
+        return base_reference
+         
+    def find_first_edge_pixel(self, image: np.ndarray) -> tuple:
+        rows, cols = image.shape
+        last_row = rows - 1
+        for col in range(cols):
+            if image[last_row, col] == 255:
+                return last_row, col
+        return None
+    
+    def is_edge_pixel(self, image: np.ndarray, row: int, col: int) -> bool:
+        rows, cols = image.shape
+        if row < 0 or row >= rows or col < 0 or col >= cols or image[row, col] == 0:
+            return False
+        neighbors = [
+            image[row-1, col-1] if row-1 >= 0 and col-1 >= 0 else 0,
+            image[row-1, col] if row-1 >= 0 else 0,
+            image[row-1, col+1] if row-1 >= 0 and col+1 < cols else 0,
+            image[row, col-1] if col-1 >= 0 else 0,
+            image[row, col+1] if col+1 < cols else 0,
+            image[row+1, col-1] if row+1 < rows and col-1 >= 0 else 0,
+            image[row+1, col] if row+1 < rows else 0,
+            image[row+1, col+1] if row+1 < rows and col+1 < cols else 0
+        ]
+        return any(n > 0 for n in neighbors)
+
+    def find_contours(self, image: np.ndarray) -> np.ndarray:
+        contour = []
+        directions = [(-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1)]
+        start_pixel = self.find_first_edge_pixel(image)
+        current_pixel = start_pixel
+        
+        # print(start_pixel)
+        current_direction = 0
+
+        while True:
+            contour.append(current_pixel)
+            found_next_pixel = False
+            
+            for i in range(len(directions)):
+                direction = directions[(current_direction + i) % len(directions)]
+                next_pixel = (current_pixel[0] + direction[0], current_pixel[1] + direction[1])
+                
+                if self.is_edge_pixel(image, next_pixel[0], next_pixel[1]):
+                    current_pixel = next_pixel
+                    current_direction = (current_direction + i + 6) % len(directions)
+                    found_next_pixel = True
+                    break
+            
+            if not found_next_pixel or current_pixel == start_pixel:
+                break
+
+        return np.array(contour)
+
+    def calculate_radial_distances_and_angles(self, contour: np.array, reference_point: tuple) -> tuple:
+        contour = contour.reshape(-1, 2)
+        distances = np.sqrt((reference_point[0] - contour[:,0])**2 + (reference_point[1] - contour[:, 1])**2)
+        return distances, contour
+    
+    def check_classification(self, area: int, perimeter: int, peaks: np.array) -> None:
+        norm_area = area/14400
+        norm_perimeter = perimeter/760
+        num_peaks = len(peaks)
+        if (norm_area > 0.5 and norm_area < 0.8 and norm_perimeter > 0.6 and norm_perimeter < 0.83 and num_peaks == 1):
+            print("Classification: One finger up")
+        elif (norm_area > 0.5 and norm_area < 0.8 and norm_perimeter > 0.6 and norm_perimeter < 0.83 and num_peaks == 2):
+            print("Classification: Victory")
+        elif (norm_area > 0.5 and norm_area < 0.85 and norm_perimeter > 0.6 and norm_perimeter < 0.85 and num_peaks == 3):
+            print("Classification: Three fingers up")
+        elif (norm_area > 0.8 and norm_perimeter > 0.8 and num_peaks == 4):
+            print("Classification: Four fingers up")
+        elif (norm_area > 0.9 and norm_perimeter > 0.9 and num_peaks == 5):
+            print("Classification: Open palm")
+        elif (norm_area < 0.7 and norm_perimeter < 0.6):
+            print("Classification: Closed fist")
+        else:
+            print("Classification: Not recognized")

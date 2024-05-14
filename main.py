@@ -15,6 +15,9 @@ def rasp_pdi(img):
     
     img = pdi.skin_color_segmentation(Y, Cr, Cb)
     img = pdi.filtering(img)
+    
+    area, perimeter = pdi.hand_area_perimeter(img)
+    print(f"RPi - Area: {area}, Perimeter: {perimeter}")
 
     mean_time = time.time() - initial_time
     print(f"PDI in rasp finished in: {mean_time}")
@@ -36,6 +39,10 @@ def fpga_pdi(img, height, width):
     new_img_g = com.recive_img(0b10)
     new_img_b = com.recive_img(0b11)
     new_img = cv2.merge([new_img_b, new_img_g, new_img_r])
+    
+    hand_area = com.recive_int_32bits(0b00)
+    hand_perimeter = com.recive_int_32bits(0b01)
+    print(f"FPGA - Area: {hand_area}, Perimeter: {hand_perimeter}")
 
     com.close_communication()
 
