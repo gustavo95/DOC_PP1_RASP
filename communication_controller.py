@@ -92,11 +92,12 @@ class CommunicationController:
         print(f"PDI in FPGA finished in: {pdi_time}")
         
     def recive_int_32bits(self, command: int = 0b00) -> int:
-        self.spi.xfer([0, int(0b00010000 | (command<<2))])
+        self.spi.xfer([0, int(0b00010000 | (command<<2)), 0])
         received = []
         for i in range(4):
-            byte = self.spi.xfer(0)
+            byte = self.spi.xfer([0])
             received.append(byte[0])
+        self.spi.xfer([0])
         return int.from_bytes(received, "big")
 
     def toUnint8(self, data: int, num_bytes: int) -> np.array:

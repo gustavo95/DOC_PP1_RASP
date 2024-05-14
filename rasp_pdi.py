@@ -12,11 +12,11 @@ class RaspPDI:
         channel_b, channel_g, channel_r = cv2.split(img)
 
         mean_r = cv2.mean(channel_r)[0]
-        print("R mean:", mean_r)
+        # print("R mean:", mean_r)
         mean_g = cv2.mean(channel_g)[0]
-        print("G mean:", mean_g)
+        # print("G mean:", mean_g)
         mean_b = cv2.mean(channel_b)[0]
-        print("B mean:", mean_b)
+        # print("B mean:", mean_b)
 
         max_mean = mean_r
         if (mean_g > max_mean):
@@ -72,10 +72,6 @@ class RaspPDI:
             for j in range(width):
                 if img[i, j] == 255:
                     area += 1
-                    if j < min_width:
-                        min_width = j
-                    if j > max_width:
-                        max_width = j
                 if img[i, j] != prev_pixel:
                     perimeter += 1
                 prev_pixel = img[i, j]
