@@ -107,7 +107,7 @@ class RaspPDI:
             image[row+1, col] if row+1 < rows else 0,
             image[row+1, col+1] if row+1 < rows and col+1 < cols else 0
         ]
-        return any(n > 0 for n in neighbors)
+        return any(n == 0 for n in neighbors)
 
     def find_contours(self, image: np.ndarray) -> np.ndarray:
         contour = []
@@ -137,26 +137,44 @@ class RaspPDI:
 
         return np.array(contour)
 
-    def calculate_radial_distances_and_angles(self, contour: np.array, reference_point: tuple) -> tuple:
+    def calculate_radial_distances(self, contour: np.array, reference_point: tuple) -> tuple:
         contour = contour.reshape(-1, 2)
         distances = np.sqrt((reference_point[0] - contour[:,0])**2 + (reference_point[1] - contour[:, 1])**2)
         return distances, contour
     
+    def detect_peaks(self, distances: list, threshold_ratio=0.715) -> list:
+        peaks = []
+        indexes = [0]
+        prev_distance = distances[0]
+        prev_prev_distance = distances[1]
+        threshold = threshold_ratio * max(distances)
+
+        for i, distance in enumerate(distances):
+            if prev_prev_distance <= prev_distance and prev_distance >= distance and prev_distance >= threshold:
+                if (i - 1 - indexes[-1]) > 10:
+                    peaks.append(prev_distance)
+                    indexes.append(i-1)
+
+            prev_prev_distance = prev_distance
+            prev_distance = distance
+        
+        return peaks
+
     def check_classification(self, area: int, perimeter: int, peaks: np.array) -> None:
         norm_area = area/14400
         norm_perimeter = perimeter/760
         num_peaks = len(peaks)
         if (norm_area > 0.5 and norm_area < 0.8 and norm_perimeter > 0.6 and norm_perimeter < 0.83 and num_peaks == 1):
-            print("Classification: One finger up")
+            print("RPi Classification: One finger up")
         elif (norm_area > 0.5 and norm_area < 0.8 and norm_perimeter > 0.6 and norm_perimeter < 0.83 and num_peaks == 2):
-            print("Classification: Victory")
+            print("RPi Classification: Victory")
         elif (norm_area > 0.5 and norm_area < 0.85 and norm_perimeter > 0.6 and norm_perimeter < 0.85 and num_peaks == 3):
-            print("Classification: Three fingers up")
+            print("RPi Classification: Three fingers up")
         elif (norm_area > 0.8 and norm_perimeter > 0.8 and num_peaks == 4):
-            print("Classification: Four fingers up")
+            print("RPi Classification: Four fingers up")
         elif (norm_area > 0.9 and norm_perimeter > 0.9 and num_peaks == 5):
-            print("Classification: Open palm")
+            print("RPi Classification: Open palm")
         elif (norm_area < 0.7 and norm_perimeter < 0.6):
-            print("Classification: Closed fist")
+            print("RPi Classification: Closed fist")
         else:
-            print("Classification: Not recognized")
+            print("RPi Classification: Not recognized")
