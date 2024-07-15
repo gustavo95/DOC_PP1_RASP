@@ -3,6 +3,8 @@ import time
 from rasp_pdi import RaspPDI
 from communication_controller import CommunicationController
 
+com = None
+
 def rasp_pdi(img):
     initial_time = time.time()
     pdi = RaspPDI()
@@ -46,21 +48,22 @@ def rasp_pdi(img):
     # cv2.imshow("rpi_img", img)
 
 def fpga_pdi(img, height, width):
+    global com
     initial_time = time.time()
     com = CommunicationController(height, width)
 
     com.send_rgb_img(img)
 
     print("Image send")
-    # time.sleep(2)
+    time.sleep(2)
 
     com.run_pdi()
     # time.sleep(2)
 
-    # new_img_r = com.recive_img(0b01)
-    # new_img_g = com.recive_img(0b10)
-    # new_img_b = com.recive_img(0b11)
-    # new_img = cv2.merge([new_img_b, new_img_g, new_img_r])
+    new_img_r = com.recive_img(0b01)
+    new_img_g = com.recive_img(0b10)
+    new_img_b = com.recive_img(0b11)
+    new_img = cv2.merge([new_img_b, new_img_g, new_img_r])
     
     hand_area = com.recive_int_32bits(0b00)
     hand_perimeter = com.recive_int_32bits(0b01)
@@ -89,13 +92,13 @@ def fpga_pdi(img, height, width):
 
     fpga_time = time.time() - initial_time
     print(f"FPGA finished in: {fpga_time}")
-    # cv2.imshow("fpga_img", new_img)
+    cv2.imshow("fpga_img", new_img)
 
 def main():
     height = 240
     width = 320
 
-    img_select = 6
+    img_select = 2
 
     if img_select == 0: 
         img = cv2.imread('hand.jpg')
@@ -129,4 +132,7 @@ def main():
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        com.close_communication()
